@@ -28,6 +28,7 @@ from tools.waymo_reader.simple_waymo_open_dataset_reader import dataset_pb2, lab
 
 # object detection tools and helper functions
 import misc.objdet_tools as tools
+import zlib
 
 
 # visualize lidar point-cloud
@@ -49,7 +50,7 @@ def show_pcl(pcl):
 
     #######
     ####### ID_S1_EX2 END #######     
-       
+
 
 # visualize range image
 def show_range_image(frame, lidar_name):
@@ -59,18 +60,40 @@ def show_range_image(frame, lidar_name):
     print("student task ID_S1_EX1")
 
     # step 1 : extract lidar data and range image for the roof-mounted lidar
-    
+
+    # find the lidar image given by lidar_name
+    lidar =  next(li for li in frame.lasers if li.name == 1)
+
+    # extract range image as described in "The Lidar Sensor - Step 12"
+    if len(lidar.ri_return1.range_image_compressed) > 0: # use first response
+        ri = dataset_pb2.MatrixFloat()
+        ri.ParseFromString(zlib.decompress(lidar.ri_return1.range_image_compressed))
+        ri = np.array(ri.data).reshape(ri.shape.dims)
+
+    # ri now has a shape of (64, 2650, 4):
+    # - 64 lines top to bottom
+    # - 2650 cols which are 360 degrees covered in 0.1358 degree steps
+    # - 4 channels: range, intensity, ?, ?
+
     # step 2 : extract the range and the intensity channel from the range image
+    range_channel = ri[:,:,0]
+    intensity_channel = ri[:,:,1]
     
     # step 3 : set values <0 to zero
+    # Note: Could have clipped ri before to not duplicate, but following instructions!
+    range_clipped = np.clip(range_channel, 0, np.Infinity)
+    intensity_clipped = np.clip(intensity_channel, 0, np.Infinity)
     
     # step 4 : map the range channel onto an 8-bit scale and make sure that the full range of values is appropriately considered
+    range_mapped = np.interp(range_clipped, (range_clipped.min(), range_clipped.max()), (0, 255))
     
     # step 5 : map the intensity channel onto an 8-bit scale and normalize with the difference between the 1- and 99-percentile to mitigate the influence of outliers
+    # Note: Amazing to see that the max is 22016 while the 99 percentile is at 0.5 for the first image!
+    p01, p99 = np.percentile(intensity_clipped, [1, 99])
+    intensity_mapped = np.interp(intensity_clipped, (p01, p99), (0, 255))
     
     # step 6 : stack the range and intensity image vertically using np.vstack and convert the result to an unsigned 8-bit integer
-    
-    img_range_intensity = [] # remove after implementing all steps
+    img_range_intensity = np.vstack((range_mapped, intensity_mapped)).astype(np.uint8)
     #######
     ####### ID_S1_EX1 END #######     
     
