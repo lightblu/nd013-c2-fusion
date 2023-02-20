@@ -29,6 +29,7 @@ from tools.waymo_reader.simple_waymo_open_dataset_reader import dataset_pb2, lab
 # object detection tools and helper functions
 import misc.objdet_tools as tools
 import zlib
+import math
 
 
 # visualize lidar point-cloud
@@ -53,7 +54,7 @@ def show_pcl(pcl):
 
 
 # visualize range image
-def show_range_image(frame, lidar_name):
+def show_range_image(frame, lidar_name, crop_to_forward=True):
 
     ####### ID_S1_EX1 START #######     
     #######
@@ -62,7 +63,7 @@ def show_range_image(frame, lidar_name):
     # step 1 : extract lidar data and range image for the roof-mounted lidar
 
     # find the lidar image given by lidar_name
-    lidar =  next(li for li in frame.lasers if li.name == 1)
+    lidar =  next(li for li in frame.lasers if li.name == lidar_name)
 
     # extract range image as described in "The Lidar Sensor - Step 12"
     if len(lidar.ri_return1.range_image_compressed) > 0: # use first response
@@ -74,6 +75,21 @@ def show_range_image(frame, lidar_name):
     # - 64 lines top to bottom
     # - 2650 cols which are 360 degrees covered in 0.1358 degree steps
     # - 4 channels: range, intensity, ?, ?
+
+    # Unmentioned step but in rubric: crop to 90 degree field of view
+    # Reusing approach from "The Lidar Sensor - Step 15": Center of the image corresponds to the positive x-axis,
+    # but we correct the center according to the azimuth from the as shown in "The Lidar Sensor - Step 18".
+    # Note: As we know the correction is small from the center, we can save us bounds checking / more complex correction here
+    # (but sure would need to handle it better in reality for generic datasets!)
+    if crop_to_forward:
+        laser_cal = next(lc for lc in frame.context.laser_calibrations if lc.name == lidar_name)
+        extrinsic = np.array(laser_cal.extrinsic.transform).reshape(4,4)
+        az_correction = math.atan2(extrinsic[1,0], extrinsic[0,0])
+        # Calculate what we need to substract from the center for correction
+        index_correction = int(az_correction / (360 / ri.shape[1]))
+        center = int(ri.shape[1]/2) - index_correction
+        deg45 = int(ri.shape[1] / 8)
+        ri = ri[:,center-deg45:center+deg45]
 
     # step 2 : extract the range and the intensity channel from the range image
     range_channel = ri[:,:,0]
