@@ -40,14 +40,43 @@ def show_pcl(pcl):
     print("student task ID_S1_EX2")
 
     # step 1 : initialize open3d with key callback and create window
-    
-    # step 2 : create instance of open3d point-cloud class
+
+    # Some more keys for some additional action, though most is already featured in the viewer itself,
+    # press 'h' to get a list of mouse and keyboard commands!
+    def key_callback(visualizer):
+        show_pcl.is_rendering = False
+
+    def esc_callback(v):
+        v.destroy_window()
+        sys.exit(0)
+
+    # We use our function object to not spoil global namespace and have something like a function-local static in C/C++
+    if 'vis' not in show_pcl.__dict__:
+        show_pcl.is_rendering = True
+        show_pcl.vis = o3d.visualization.VisualizerWithKeyCallback()
+        # Keys: https://www.glfw.org/docs/latest/group__keys.html
+        show_pcl.vis.register_key_callback(262, key_callback) # right
+        show_pcl.vis.register_key_callback(32, key_callback) # space
+        show_pcl.vis.register_key_callback(256, esc_callback) # esc
+        show_pcl.vis.create_window()
+        # step 2 : create instance of open3d point-cloud class
+        show_pcl.pcd = o3d.geometry.PointCloud()
 
     # step 3 : set points in pcd instance by converting the point-cloud into 3d vectors (using open3d function Vector3dVector)
+    show_pcl.pcd.points =  o3d.utility.Vector3dVector(pcl[:, :3])
 
     # step 4 : for the first frame, add the pcd instance to visualization using add_geometry; for all other frames, use update_geometry instead
+    if show_pcl.is_rendering == True: # This is only true in the first setup round
+        show_pcl.vis.add_geometry(show_pcl.pcd)
+    else:
+        show_pcl.vis.update_geometry(show_pcl.pcd)
     
     # step 5 : visualize point cloud and keep window open until right-arrow is pressed (key-code 262)
+    show_pcl.is_rendering = True  # to be able to return from here, we cannot use .run() but need to di
+    while show_pcl.is_rendering:  # it "manually" with poll_events, update_renderer and our own loop guard
+        show_pcl.vis.poll_events()
+        show_pcl.vis.update_renderer()
+        #vis.run()
 
     #######
     ####### ID_S1_EX2 END #######     
