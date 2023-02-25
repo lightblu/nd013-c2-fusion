@@ -29,6 +29,7 @@ from tools.waymo_reader.simple_waymo_open_dataset_reader import dataset_pb2, lab
 # object detection tools and helper functions
 import misc.objdet_tools as tools
 import zlib
+import open3d as o3d
 import math
 
 
