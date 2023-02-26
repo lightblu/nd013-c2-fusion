@@ -5,7 +5,7 @@
 
  - exec_data is gone and instructions should be updated: Due to changes in boilerplate code - helpers.py under misc, you don't need to pass this parameter any longer. make_exec_list function takes care of it.
  - maybe due to the same change, neither project or step setup mention you also need to adapt the sequence variable to 1, 2 or 3 according to selected sequence
- - min_iou missing in config, and t he one func getting configs_det for nothing?
+ - min_iou missing in config, and the one func getting configs_det for nothing?
  
 ----
 # Writeup: Visualize point cloud
@@ -30,24 +30,35 @@
 | 5 | Jeep with trailers![](./img/first-5-jeep-trailer.png) |
 | 6 | 3 cars barely visible (only 1/8th) and with much fewer points due to their distance ![](./img/first-6-far-away-cars.png) |
 
+----
 
 ![](./img/second-4-cars-forward-far-away.png)
 **7: Few far away cars with just their rear visible.**
 
+----
+
 ![](./img/third-follower.png)
 **8: Car following ego vehicle, close but only front and mirrors visible**
+
+----
 
 ![](./img/fourth-close-car-right.png)
 **9: Very close car to the right shadowed by ego vehicle, only top visible**
 
+----
+
 ![](./img/fifth-truck-central-reserve.png)
 **10: Big truck but quite obstructed and separated into multiple point clouds due to obstruction by various objects on the central reserve.**
 
+----
+
 ![](./img/sixth-thress-cars-rear-obstructed.png)
-**11: Three cars in the rare obstructed in different degrees due to ego vehicle.**
+**11: Three cars in the rear obstructed in different degrees due to ego vehicle.**
+
+----
 
 ![](./img/seventh-obstructed-by-jeep-with-trailer.png)
-**12: Very badly cars shadowed by the jeep in trailer before them, only recognizable by frames before.**
+**12: Very badly cars shadowed by the jeep and trailer before them, only recognizable by frames before.**
 
 ## Try to identify vehicle features that appear stable in most of the inspected examples and describe them
  
@@ -58,6 +69,7 @@
 
 
 ----
+
 # Writeup: Track 3D-Objects Over Time
 
 
