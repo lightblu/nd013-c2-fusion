@@ -35,20 +35,25 @@ class Track:
         # - initialize track state and track score with appropriate values
         ############
 
-        self.x = np.matrix([[49.53980697],
-                        [ 3.41006279],
-                        [ 0.91790581],
-                        [ 0.        ],
-                        [ 0.        ],
-                        [ 0.        ]])
-        self.P = np.matrix([[9.0e-02, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00],
-                        [0.0e+00, 9.0e-02, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00],
-                        [0.0e+00, 0.0e+00, 6.4e-03, 0.0e+00, 0.0e+00, 0.0e+00],
-                        [0.0e+00, 0.0e+00, 0.0e+00, 2.5e+03, 0.0e+00, 0.0e+00],
-                        [0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 2.5e+03, 0.0e+00],
-                        [0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 0.0e+00, 2.5e+01]])
-        self.state = 'confirmed'
-        self.score = 0
+        # initialization of track.x and track.P based on the input meas, which is an unassigned lidar measurement object of
+        # type Measurement. Transform the unassigned measurement from sensor to vehicle coordinates with the
+        # sens_to_veh transformation matrix implemented in the Sensor class.
+
+        meas_in_veh_coords = meas.sensor.sens_to_veh * np.append(meas.z, [[1]], 0)
+        self.x = np.append(meas_in_veh_coords[0:3], [[0],[0],[0]], 0)
+
+        # Get position covariances from measurment R via M_rot
+        P_positions = M_rot * meas.R * np.transpose(M_rot)
+        # Start with all zeros P and put in P_positions
+        self.P = np.zeros((params.dim_state, params.dim_state))
+        self.P[0:3, 0:3] = P_positions
+        # velocities covariances come directly from params
+        self.P[3, 3] = params.sigma_p44**2
+        self.P[4, 4] = params.sigma_p55**2
+        self.P[5, 5] = params.sigma_p66**2
+
+        self.state = 'initialized'
+        self.score = 1 / params.window
         
         ############
         # END student code
@@ -107,9 +112,18 @@ class Trackmanagement:
             if meas_list: # if not empty
                 if meas_list[0].sensor.in_fov(track.x):
                     # your code goes here
-                    pass 
+                    track.score -= 1 / params.window
+                    print(f'score of track {track.id} decreased to {track.score}')
 
         # delete old tracks   
+        for track in self.track_list:
+            if track.state == 'confirmed' and track.score < params.delete_threshold:
+                self.delete_track(track)
+            elif track.state != 'confirmed' and track.score <= 0.0:
+                self.delete_track(track)
+            elif (track.P[0,0] > params.max_P) or (track.P[1,1] > params.max_P):
+                self.delete_track(track)
+
 
         ############
         # END student code
@@ -130,7 +144,7 @@ class Trackmanagement:
         self.addTrackToList(track)
 
     def delete_track(self, track):
-        print('deleting track no.', track.id)
+        print(f'deleting track no={track.id} state={track.state} score={track.score} p00={track.P[0,0]} p11={track.P[1,1]}')
         self.track_list.remove(track)
         
     def handle_updated_track(self, track):      
@@ -139,9 +153,10 @@ class Trackmanagement:
         # - increase track score
         # - set track state to 'tentative' or 'confirmed'
         ############
+        track.score = min(track.score + (1.0 / params.window), 1.0)
+        track.state = 'confirmed' if track.score > params.confirmed_threshold else 'tentative'
+        print(f'score of track {track.id} increased to {track.score} {track.state}')
 
-        pass
-        
         ############
         # END student code
         ############ 

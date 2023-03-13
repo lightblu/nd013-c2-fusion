@@ -75,12 +75,49 @@
 
 ### 1. Write a short recap of the four tracking steps and what you implemented there (filter, track management, association, camera fusion). Which results did you achieve? Which part of the project was most difficult for you to complete, and why?
 
+#### Extended Kalman Filter (EFK) implementation
+
+Implemented
+- F (f is the state transition function; in the linear case, it is a matrix F, also called system matrix)
+- covariance matrix Q
+Both  needed to be extended from the 2d and 4d versions to the 6d space (because we now have position and velocity in 3 dimensions).
+Also implemented S and gamma and filled in predict and update functions as presented in the lectures. Major difference to the lecture material
+besides the 6d-extension is that now the track and measurment classes are used to provide x and P respectively the H matrix / hx fucntion.
+As suggested we used the general form of the measurement function provided by the sensor class, so that it will also work for the nonlinear camera model.
+
+Results from applying this to a simple single-target scenario with lidar only:
+
+![](./img/final-step1-results.png)
+
+
+#### Track management
+
+- Implemented the initialization of a track, setting position and covariance from the first measurement.
+- Implemented decreasing the score of unassigned tracks, deleting a confirmed track if it falls below `params.delete_threshold` or
+  an unconfirmed track if it falls to 0, or any track if x or y covariance grows bigger than `params.max_P`
+- Implemented increasing the score of handled tracks and setting them to confirmed if over `params.confirmed_threshold`
+
+![](./img/final-step2-results.png)
+
 
 ### 2. Do you see any benefits in camera-lidar fusion compared to lidar-only tracking (in theory and in your concrete results)? 
 
 
+- camera predestined for object classificiation
+- camera better for black or highly asorbing objects
+- lidar may als ogive false positives for small but reflective objects
+- all sensors may experience blockage
+
 ### 3. Which challenges will a sensor fusion system face in real-life scenarios? Did you see any of these challenges in the project?
 
+
+false negatives: occlusions, sensor failures, low reflective of object
+
+clutter sources, false positives, guard rail reflector etc.
+
+new vehicles appearin, other disappearing
+
+different visibility fov!
 
 ### 4. Can you think of ways to improve your tracking results in the future?
 
