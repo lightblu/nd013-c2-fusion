@@ -73,7 +73,7 @@
 # Writeup: Track 3D-Objects Over Time
 
 
-### 1. Write a short recap of the four tracking steps and what you implemented there (filter, track management, association, camera fusion). Which results did you achieve? Which part of the project was most difficult for you to complete, and why?
+### 1. Write a short recap of the four tracking steps and what you implemented there (filter, track management, association, camera fusion). Which results did you achieve?
 
 #### Extended Kalman Filter (EFK) implementation
 
@@ -82,57 +82,75 @@ Implemented
 - covariance matrix Q
 Both  needed to be extended from the 2d and 4d versions to the 6d space (because we now have position and velocity in 3 dimensions).
 Also implemented S and gamma and filled in predict and update functions as presented in the lectures. Major difference to the lecture material
-besides the 6d-extension is that now the track and measurment classes are used to provide x and P respectively the H matrix / hx fucntion.
+besides the 6d-extension is that now the track and measurement classes are used to provide x and P respectively the H matrix / hx function.
 As suggested we used the general form of the measurement function provided by the sensor class, so that it will also work for the nonlinear camera model.
 
-Results from applying this to a simple single-target scenario with lidar only:
 
 ![](./img/final-step1-results.png)
-
+**Results from applying this step 1 to a simple single-target scenario with lidar only**
 
 #### Track management
 
 - Implemented the initialization of a track, setting position and covariance from the first measurement.
 - Implemented decreasing the score of unassigned tracks, deleting a confirmed track if it falls below `params.delete_threshold` or
   an unconfirmed track if it falls to 0, or any track if x or y covariance grows bigger than `params.max_P`
+  (As we initialize the score with `1 / params.window` and then de- or increase by this steps, higher than 0 did not seem reasonable).
 - Implemented increasing the score of handled tracks and setting them to confirmed if over `params.confirmed_threshold`
 
 ![](./img/final-step2-results.png)
+**Results from applying tracking (step 2) to a simple single-target scenario with lidar only**
 
 #### Association
 
-- Implemented creating the association matrix, which is the MHD distance of each measurement-track-pair gated by the chi2 distribution
-- Implemented another method that always chooses the minimum distance from the matrix, that is used to find all assignments until exhausted.
+- Implemented creating the association matrix, which is the MHD distance of each measurement-track-pair gated by the chi2 distribution (to exclude totally unreasonable pairings ahead)
+- Implemented association method that always chooses the minimum distance from the matrix, that is used to find all assignments on nearest neighbor basis until exhausted.
 
 The resulting clip shows 2 confirmed tracks throughout the whole sequence, a third one enters the scene from behind around the middle. Multiple
 ghost tracks appear briefly, but get never confirmed and disappear quickly again, too. Towards the end a lot of static vehicles pass by on the right side,
 however the lidar does not detect them at all. Forward there are also two more far away cars, only one of those gets briefly detected as a ghost track.
 
 ![](./img/final-step3-results.png)
-![](./img/tracking_results_step3.mp4)
+**Results from applying association (step 3) to multi-target tracking scenario with lidar only [video](./img/tracking_results_step3.mp4)**
 
 #### Camera Fusion
 
+- Enabled also taking camera measurements into account, for that implemented their proper initialization and the h(x) function
 
-### 2. Do you see any benefits in camera-lidar fusion compared to lidar-only tracking (in theory and in your concrete results)? 
+In contrast to the prior version, this version shows now much less ghost tracks, and those that appear still for a much shorter time.
+Integrating the camera had no impact though on the third far away vehicle, and also not on the vehicles to the right that appear at the end of the video, as they
+are also not detected by the camera (even if visible and appearing as ground truth). A better camera detection would be needed, on the other hand
+those vehicles are not relevant for the current road situation anyway.
+The RMSE improved for two of the three tracks, for the closest track it interestingly increased a bit slightly.
 
+![](./img/final-step4-results.png)
+**Results from applying association (step 3) to multi-target tracking scenario with lidar and camera fused [video](./img/tracking_results_step4.mp4)**
 
-- camera predestined for object classificiation
-- camera better for black or highly asorbing objects
-- lidar may als ogive false positives for small but reflective objects
-- all sensors may experience blockage
+### 2. Do you see any benefits in camera-lidar fusion compared to lidar-only tracking (in theory and in your concrete results)?
+
+Yes, on the most general level and with fusion done right, it should always be better to have multiple different sensors available, as every sensor has its error and specific deficiencies under certain conditions that the combination of multiple ones can alleviate.
+*(Even if some car company claims that humans can also drive with just one sensor == their eyes, one shouldn't forget that the tolerance for machines failing will be less than humans failing, and machines are still a far way off to achieve perception like humans - and on another thought and also personally as a human, the author would have often sought for better ranging capabilities in e.g. dark conditions ;) )*
+
+Cameras are in theory are better at object classification also, while they have deficiencies in precise range measurements. Cameras have it also easier to detect black or highly absorbing objects, or also to prevent false positive of small but very reflective objects.
+
+Concretely in the prior results, the fusion with the camera could prevent and shorten ghost track appearance significantly, and also improved the overall RMSE a bit.
+
+The author would have assumed that it should have also helped with the far away car or the parked cars at the right side. However this did not happen because these objects were also just not detected by the camera, and likely need a better detection (problem in camera detection, not the fusion).
 
 ### 3. Which challenges will a sensor fusion system face in real-life scenarios? Did you see any of these challenges in the project?
 
+Most typical problems seen were more on the individual sensor (e.g. ghost tracks coming from wrong lidar detections, or false negatives because the camera not detecting visible vehicels) than the fusion level.
+However, the above mentioned third in front but far away car was interesting: With lidar it was mostly not detected, while together with the camera and made a longer ghost track appearance, however it didn't make
+it to a confirmed track because the lidar-non-detection downgraded it vs the camera detection.
 
-false negatives: occlusions, sensor failures, low reflective of object
-
-clutter sources, false positives, guard rail reflector etc.
-
-new vehicles appearin, other disappearing
-
-different visibility fov!
+On another level, building a real product will then also include the permanent engineering challenge to find the best trade offs between many things, e.g.: complexity, runtime performance (we need certain real-time processing), cost, power consumption, and for a car even how much space of the car for all these components gets used.
 
 ### 4. Can you think of ways to improve your tracking results in the future?
 
-- Integrate more sensors, multiple cameras to get better fov
+Integrating more sensors, e.g. long range radar may be interesting to detect more far away vehicles, or while less accurate is maybe more robust in severe weather conditions.
+One could also think about adding more sensors of the same type for redundancy / accuracy improvement, e.g. how one can gain 3d vision by combining 2 cameras like two eyes.
+Or much simpler, just have multiple cameras to also see to the side and behind.
+
+The tracking itself could also take more prior state and environment into account, e.g. constant velocity is apparently not the reality, but we could also take accelerations
+and likely other future behavior of other vehicles or even map data into account, e.g. we know a car heading towards a crossing in a turning lane likely means it will decelerate
+and take a turn. Or in pedestrian environments with children nearby, a car might be much more likely to do an emergency braking.
+
