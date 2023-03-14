@@ -110,7 +110,9 @@ ghost tracks appear briefly, but get never confirmed and disappear quickly again
 however the lidar does not detect them at all. Forward there are also two more far away cars, only one of those gets briefly detected as a ghost track.
 
 ![](./img/final-step3-results.png)
-**Results from applying association (step 3) to multi-target tracking scenario with lidar only [video](./img/tracking_results_step3.mp4)**
+**Results from applying association (step 3) to multi-target tracking scenario with lidar only [video](./img/tracking_results_step3.mp4.mov)**
+
+<video width="320" height="240" controls><source src="./img/tracking_results_step3.mp4.mov" type="video/mp4"></video>
 
 #### Camera Fusion
 
@@ -123,7 +125,9 @@ those vehicles are not relevant for the current road situation anyway.
 The RMSE improved for two of the three tracks, for the closest track it interestingly increased a bit slightly.
 
 ![](./img/final-step4-results.png)
-**Results from applying association (step 3) to multi-target tracking scenario with lidar and camera fused [video](./img/tracking_results_step4.mp4)**
+**Results from applying association (step 3) to multi-target tracking scenario with lidar and camera fused [video](./img/tracking_results_step4.mp4.mov)**
+
+<video width="320" height="240" controls><source src="./img/tracking_results_step4.mp4.mov" type="video/mp4"></video>
 
 ### 2. Do you see any benefits in camera-lidar fusion compared to lidar-only tracking (in theory and in your concrete results)?
 
