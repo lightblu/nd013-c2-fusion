@@ -43,13 +43,20 @@ class Association:
         self.unassigned_tracks = [] # reset lists
         self.unassigned_meas = []
         
-        if len(meas_list) > 0:
-            self.unassigned_meas = [0]
-        if len(track_list) > 0:
-            self.unassigned_tracks = [0]
-        if len(meas_list) > 0 and len(track_list) > 0: 
-            self.association_matrix = np.matrix([[0]])
-        
+        N, M = len(track_list), len(meas_list)
+
+        if M > 0:
+            self.unassigned_meas = list(range(M))
+        if N > 0:
+            self.unassigned_tracks = list(range(N))
+        if N > 0 and M > 0:
+            self.association_matrix = np.full((N, M), np.inf)
+            for i in range(N):
+                for j in range(M):
+                    mhd = self.MHD(track_list[i], meas_list[j], KF)
+                    if self.gating(mhd, meas_list[j].sensor):
+                        self.association_matrix[i, j] = mhd
+
         ############
         # END student code
         ############ 
@@ -62,28 +69,34 @@ class Association:
         # - remove corresponding track and measurement from unassigned_tracks and unassigned_meas
         # - return this track and measurement
         ############
+        A = self.association_matrix
+
+        # As in associate, i is track, j is measurement
+        i, j = np.unravel_index(np.argmin(A), A.shape)
+
+        if A[i, j] == np.inf:
+            return np.nan, np.nan
 
         # the following only works for at most one track and one measurement
-        update_track = 0
-        update_meas = 0
+        update_track = self.unassigned_tracks[i]
+        update_meas = self.unassigned_meas[j]
         
         # remove from list
-        self.unassigned_tracks.remove(update_track) 
+        self.unassigned_tracks.remove(update_track)
         self.unassigned_meas.remove(update_meas)
-        self.association_matrix = np.matrix([])
+        self.association_matrix = np.delete(np.delete(A, i, 0), j, 1)
             
         ############
         # END student code
         ############ 
-        return update_track, update_meas     
+        return update_track, update_meas
 
     def gating(self, MHD, sensor): 
         ############
         # TODO Step 3: return True if measurement lies inside gate, otherwise False
         ############
-        
-        pass    
-        
+        # gating checks MHD with chi2, parametrized by our gating_threashold and degrees of freedom
+        return MHD < chi2.ppf(params.gating_threshold, sensor.dim_meas)
         ############
         # END student code
         ############ 
@@ -92,8 +105,11 @@ class Association:
         ############
         # TODO Step 3: calculate and return Mahalanobis distance
         ############
-        
-        pass
+        # H, gamma and then S as before
+        H = meas.sensor.get_H(track.x)
+        gamma = KF.gamma(track, meas)
+        # Mahalanobis distance as in Multi-Target Tracking Part 13
+        return gamma.transpose() * np.linalg.inv(KF.S(track, meas, H)) * gamma
         
         ############
         # END student code

@@ -99,6 +99,20 @@ Results from applying this to a simple single-target scenario with lidar only:
 
 ![](./img/final-step2-results.png)
 
+#### Association
+
+- Implemented creating the association matrix, which is the MHD distance of each measurement-track-pair gated by the chi2 distribution
+- Implemented another method that always chooses the minimum distance from the matrix, that is used to find all assignments until exhausted.
+
+The resulting clip shows 2 confirmed tracks throughout the whole sequence, a third one enters the scene from behind around the middle. Multiple
+ghost tracks appear briefly, but get never confirmed and disappear quickly again, too. Towards the end a lot of static vehicles pass by on the right side,
+however the lidar does not detect them at all. Forward there are also two more far away cars, only one of those gets briefly detected as a ghost track.
+
+![](./img/final-step3-results.png)
+![](./img/tracking_results_step3.mp4)
+
+#### Camera Fusion
+
 
 ### 2. Do you see any benefits in camera-lidar fusion compared to lidar-only tracking (in theory and in your concrete results)? 
 
@@ -121,3 +135,4 @@ different visibility fov!
 
 ### 4. Can you think of ways to improve your tracking results in the future?
 
+- Integrate more sensors, multiple cameras to get better fov
